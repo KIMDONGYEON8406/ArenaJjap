@@ -102,6 +102,7 @@ MonoBehaviour:
   wDelay: 0.1
   eDelay: 0.1
   rDelay: 0
+  animator: {fileID: 7101806127043439641}
   AAObj: {fileID: 5801730086407992184, guid: 59d56bf0fc937514ea136589b3a3fc2e, type: 3}
   QObj: {fileID: 4778584851969424976, guid: eeeb389befc640b4083c4619333d93bc, type: 3}
   WObj: {fileID: 7795432686161682868, guid: d27bc38b1f093db44b2e1df52d5571fa, type: 3}
@@ -253,5 +254,10 @@ PrefabInstance:
 --- !u!4 &3778102132006205027 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8f518fe26f1c46943ae1665ac776ed09, type: 3}
+  m_PrefabInstance: {fileID: 3739178059456926088}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &7101806127043439641 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 8f518fe26f1c46943ae1665ac776ed09, type: 3}
   m_PrefabInstance: {fileID: 3739178059456926088}
   m_PrefabAsset: {fileID: 0}

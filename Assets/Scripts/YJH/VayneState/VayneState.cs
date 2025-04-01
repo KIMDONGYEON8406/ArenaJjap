@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public interface IVayneState
@@ -31,8 +32,8 @@ public class VayneState : PlayerController
     int hitCount = 0;
     public override void Start()
     {
-        ChangeState(new DefaultState());
         base.Start();
+        ChangeState(new DefaultState());        
     }
 
     public override void Update()
