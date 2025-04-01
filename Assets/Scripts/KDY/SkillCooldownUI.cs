@@ -3,49 +3,58 @@ using UnityEngine.UI;
 
 public class SkillCooldownUI : MonoBehaviour
 {
+    // 타겟 대상 컨트롤러
     public PlayerController targetController;
 
+    // Q 슬롯 스킬 Q UI
     [Header("Q Slot")]
-    public Image qFillImage;
-    public Text qCooldownText;
+    public Image qFillImage;        // Q 스킬 쿨타임 이미지
+    public Text qCooldownText;      // Q 스킬 쿨타임 텍스트
 
+    // W 슬롯 스킬 W UI
     [Header("W Slot")]
-    public Image wFillImage;
-    public Text wCooldownText;
+    public Image wFillImage;        // W 스킬 쿨타임 이미지
+    public Text wCooldownText;      // W 스킬 쿨타임 텍스트
 
+    // E 슬롯 스킬 E UI
     [Header("E Slot")]
-    public Image eFillImage;
-    public Text eCooldownText;
+    public Image eFillImage;        // E 스킬 쿨타임 이미지
+    public Text eCooldownText;      // E 스킬 쿨타임 텍스트
 
+    // R 슬롯 스킬 R UI
     [Header("R Slot")]
-    public Image rFillImage;
-    public Text rCooldownText;
+    public Image rFillImage;        // R 스킬 쿨타임 이미지
+    public Text rCooldownText;      // R 스킬 쿨타임 텍스트
 
+    // D 슬롯 돌진/Rush UI
     [Header("D Slot (Rush)")]
-    public Image dFillImage;
-    public Text dCooldownText;
-    public float dCooldownDuration = 240f;
-    private float dLastUsedTime = -999f;
+    public Image dFillImage;        // 돌진 쿨타임 이미지
+    public Text dCooldownText;      // 돌진 쿨타임 텍스트
+    public float dCooldownDuration = 240f;   // 돌진 쿨타임 (초)
+    private float dLastUsedTime = -999f;     // 마지막 사용 시각
 
+    // F 슬롯 점멸/Flash UI
     [Header("F Slot (Flash)")]
-    public Image fFillImage;
-    public Text fCooldownText;
-    public float fCooldownDuration = 300f;
-    private float fLastUsedTime = -999f;
+    public Image fFillImage;        // 점멸 쿨타임 이미지
+    public Text fCooldownText;      // 점멸 쿨타임 텍스트
+    public float fCooldownDuration = 300f;   // 점멸 쿨타임 (초)
+    private float fLastUsedTime = -999f;     // 마지막 사용 시각
 
+    // 체력 UI 요소
     [Header("HP UI")]
-    public Image hpFillImage;
+    public Image hpFillImage;       // 체력바 이미지
 
     [Header("HP Text (Split)")]
-    public Text hpLeftText;   // 현재 체력
-    public Text hpRightText;  // 최대 체력
+    public Text hpLeftText;         // 현재 체력 표시 텍스트
+    public Text hpRightText;        // 최대 체력 표시 텍스트
 
-    //  최대 체력 캐싱용 변수
+    // 최대 체력
     private float cachedMaxHP;
+
 
     void Start()
     {
-        // 최초 최대 체력 캐싱
+        // 초기 최대 체력값 저장 (최초 1회)
         if (targetController != null && targetController.character != null)
         {
             cachedMaxHP = targetController.character.HP;
@@ -54,22 +63,27 @@ public class SkillCooldownUI : MonoBehaviour
 
     void Update()
     {
+        // 대상이 없거나 캐릭터가 연결 안 됐을 경우 처리 중단
         if (targetController == null || targetController.character == null)
         {
             Debug.LogWarning("targetController 또는 character가 연결되지 않았습니다.");
             return;
         }
 
+        // 각 스킬 슬롯 UI 업데이트
         UpdateSkillUI(targetController.character.CurQCool, GetSkillMaxCooldown("qCoolDown"), qFillImage, qCooldownText, "Q");
         UpdateSkillUI(targetController.character.CurWCool, GetSkillMaxCooldown("wCoolDown"), wFillImage, wCooldownText, "W");
         UpdateSkillUI(targetController.character.CurECool, GetSkillMaxCooldown("eCoolDown"), eFillImage, eCooldownText, "E");
         UpdateSkillUI(targetController.character.CurRCool, GetSkillMaxCooldown("rCoolDown"), rFillImage, rCooldownText, "R");
 
+        // D (돌진), F (점멸) 스킬 상태 UI 갱신
         UpdateDFCooldown("D", targetController.character.CanRush, dFillImage, dCooldownText, dCooldownDuration, ref dLastUsedTime);
         UpdateDFCooldown("F", targetController.character.CanFlash, fFillImage, fCooldownText, fCooldownDuration, ref fLastUsedTime);
 
-        UpdateHPUI(); // 체력 UI 갱신
+        // 체력 UI 업데이트
+        UpdateHPUI();
 
+        // 테스트: 스페이스바로 데미지 주기 (디버그용)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             TryndamereController trynd = targetController as TryndamereController;
@@ -80,6 +94,7 @@ public class SkillCooldownUI : MonoBehaviour
         }
     }
 
+    // 스킬 쿨타임 UI 반영
     void UpdateSkillUI(float currentCool, float maxCool, Image fillImage, Text cooldownText, string label)
     {
         float ratio = Mathf.Clamp01(currentCool / maxCool);
@@ -88,11 +103,10 @@ public class SkillCooldownUI : MonoBehaviour
             fillImage.fillAmount = ratio;
 
         if (cooldownText != null)
-        {
             cooldownText.text = currentCool > 0 ? Mathf.CeilToInt(currentCool).ToString() : "";
-        }
     }
 
+    // D/F 스킬 쿨다운 상태 UI 반영
     void UpdateDFCooldown(string label, bool isAvailable, Image fillImage, Text cooldownText, float cooldownDuration, ref float lastUsedTime)
     {
         if (isAvailable)
@@ -112,7 +126,7 @@ public class SkillCooldownUI : MonoBehaviour
         }
     }
 
-    //  HP UI 갱신 (현재 체력만 변함, 최대 체력은 고정)
+    // 체력 UI 갱신 (현재 체력만 반영, 최대 체력은 캐시된 값 사용)
     void UpdateHPUI()
     {
         float curHP = Mathf.Max(0f, targetController.character.CurHP);
@@ -127,6 +141,7 @@ public class SkillCooldownUI : MonoBehaviour
             hpRightText.text = $"/ {(int)cachedMaxHP}";
     }
 
+    // 스킬의 최대 쿨타임 값을 리플렉션으로 가져옴
     float GetSkillMaxCooldown(string fieldName)
     {
         var field = targetController.character.GetType().GetField(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
