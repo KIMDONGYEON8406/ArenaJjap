@@ -43,15 +43,20 @@ public class TryndamereController : PlayerController
     private void Awake()
     {
         navMeshAgent = GetComponent<NavMeshAgent>();
+        anim = GetComponentInChildren<Animator>();
     }
+
+    private void CancelAttackDelay()
+    {
+        StopCoroutine("AAHandle");
+        canAA = true;
+    }
+
 
     // 목표 위치로 이동
     public override void Move(Vector3 pos)
     {
         base.Move(pos);
-
-        if (anim == null)
-            anim = GetComponentInChildren<Animator>(); // 애니메이터 
 
         anim.SetFloat("isMovingBlend", 1f); // 이동 중 애니메이션 설정
         isMoving = true;
@@ -90,10 +95,6 @@ public class TryndamereController : PlayerController
         if (distance > character.Range * 0.01f) return;
 
         base.AutoAttack(target); // 기본 공격 로직 실행
-
-        if (anim == null)
-            anim = GetComponentInChildren<Animator>();
-
         PerformAttack(); // 공격 애니메이션 및 분노 증가 처리
 
         Debug.Log($"AutoAttack 실행! 대상: {target?.name}, 현재 분노: {rage}");
@@ -108,9 +109,12 @@ public class TryndamereController : PlayerController
         // Q 쿨타임이 없고, 분노가 1 이상일 때 사용 가능
         if (character.CurQCool <= 0 && rage > 0)
         {
+            CancelAttackDelay(); // 평캔
+
             // 체력 회복량 계산: 분노의 절반
-            Debug.Log("QQ");
             int healAmount = rage / 2;
+            Debug.Log($"[Q Heal] rage={rage} → healAmount={rage / 2}");
+            
             character.Heal(healAmount); // 체력 회복
             rage = 0; // 분노 초기화
             Debug.Log($"Q 스킬 사용! 체력 {healAmount} 회복");
@@ -122,13 +126,12 @@ public class TryndamereController : PlayerController
                 healEffect.transform.SetParent(transform);
                 healEffect.SetActive(true);
                 Destroy(healEffect, 2f);
-            }
 
-            if (anim == null)
-                anim = GetComponentInChildren<Animator>();
+            }
 
             anim.SetTrigger("UseQ"); // Q 사용 애니메이션 실행
             character.SetQCooldown(); // 쿨타임 설정
+
 
             Debug.Log("Q사용");
         }
@@ -141,6 +144,8 @@ public class TryndamereController : PlayerController
 
         if (character.CurWCool <= 0)
         {
+            CancelAttackDelay(); // 평캔
+
             // 스킬 범위 내 적 유닛 탐색
             Collider[] targets = Physics.OverlapSphere(transform.position, skillRange, LayerMask.GetMask("Enemy"));
             Debug.Log($"W 스킬 사용! 대상 검색 중... 감지된 개수: {targets.Length}");
@@ -233,11 +238,10 @@ public class TryndamereController : PlayerController
         // 쿨타임이 없고 돌진 중이 아닐 때만 실행
         if (character.CurECool <= 0 && !isDashing)
         {
+            CancelAttackDelay(); // 평캔
+
             eTargetPosition = location;
             isDashing = true;
-
-            if (anim == null)
-                anim = GetComponentInChildren<Animator>();
 
             anim.SetTrigger("UseE"); // 돌진 애니메이션 실행
             StartCoroutine(SmoothDash()); // 자연스러운 이동 시작
@@ -289,13 +293,12 @@ public class TryndamereController : PlayerController
     {
         if (character.CurRCool <= 0)
         {
+            CancelAttackDelay(); // 평캔
+
             if (isImmortal) return; // 이미 무적 상태면 중복 실행 방지
 
             isImmortal = true; // 무적 상태 적용
             character.SetState(State.Invincible); // 상태 설정
-
-            if (anim == null)
-                anim = GetComponentInChildren<Animator>();
 
             anim.SetTrigger("UseR");      // 궁극기 애니메이션
             rEffectObject.SetActive(true); // 이펙트 표시
@@ -332,12 +335,6 @@ public class TryndamereController : PlayerController
         }
 
         character.AdjustHP(-damage); // 피해 적용
-
-        // (예비 안전장치) 무적일 때 체력이 1 이하로 떨어지면 1로 고정
-        if (isImmortal && character.CurHP <= 1)
-        {
-            character.AdjustHP(1 - character.CurHP);
-        }
     }
 
     // 기본 공격 실행 - 치명타 판정 및 애니메이션 실행
