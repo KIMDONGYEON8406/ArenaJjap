@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _HP: 2532
   _HPRegen: 23.8
-  _atk: 22.48147
+  _atk: 22.481468
   _def: 114.5
-  _moveSpeed: 1080
+  _moveSpeed: 476
   _atkSpeed: 1.071
   _range: 175
   qCoolDown: 12
