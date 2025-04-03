@@ -83,16 +83,25 @@ public class MatchManager : MonoBehaviourPunCallbacks
             if (blueteam.Contains(p))
             {
                 playerIndex = blueteam.IndexOf(p); // 블루팀 내에서 위치 찾기
-            }
+                if (PhotonNetwork.IsMasterClient && GameManager.Instance != null)
+                {
+                    GameManager.Instance.AddBlueTeam(p.ActorNumber);
+                }
+            } 
             else
             {
                 playerIndex = redteam.IndexOf(p) + blueteam.Count; // 레드팀이면 블루팀 개수만큼 추가한 위치
+                if (PhotonNetwork.IsMasterClient && GameManager.Instance != null)
+                {
+                    GameManager.Instance.AddRedTeam(p.ActorNumber);
+                }
             }
 
             if (playerIndex >= 0 && playerIndex < nickNameTexts.Length)
             {
                 nickNameTexts[playerIndex].text = p.NickName;
             }
+
         }
     }
 
@@ -127,7 +136,6 @@ public class MatchManager : MonoBehaviourPunCallbacks
         List<Player> myTeam = blueteam.Contains(localPlayer) ? blueteam : redteam;
         int playerIndex = myTeam.IndexOf(localPlayer);
         playerChampion[localPlayer] = index;
-
 
         myChampionIndex = index;
 

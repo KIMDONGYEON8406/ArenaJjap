@@ -5,6 +5,7 @@ using UnityEngine.AI;
 using Photon.Pun;
 using System;
 using Photon.Realtime;
+using UnityEngine.SocialPlatforms;
 
 [Serializable]
 [RequireComponent(typeof(NavMeshAgent))]
@@ -14,13 +15,35 @@ public class PlayerController : MonoBehaviour, IPunObservable
     public string enemyTag;
     protected NavMeshAgent agent;
     public PhotonView pv;
+
+    [Header("Q")]
+    public int qRange;
     public float qDelay;
+    public bool qTarget;
+    public bool qChannel;
+
+    [Header("W")]
+    public int wRange;
     public float wDelay;
+    public bool wTarget;
+    public bool wChannel;
+
+    [Header("E")]
+    public int eRange;
     public float eDelay;
+    public bool eTarget;
+    public bool eChannel;
+
+    [Header("R")]
+    public int rRange;
     public float rDelay;
+    public bool rTarget;
+    public bool rChannel;
+
 
     protected Queue<CommandBase> toExecute;
     protected CommandBase curCommand;
+    protected Coroutine curCommandCor;
 
     Ray ray;
     RaycastHit hit;
@@ -45,12 +68,16 @@ public class PlayerController : MonoBehaviour, IPunObservable
         character.OnTakeDamage += ApplyDamage;
         character.OnHeal += ApplyHeal;
         character.OnStateChanged += ApplyState;
+        character.OnDie += Death;
+
         //Cursor.SetCursor(cursorTexture, new Vector2(0.5f, 0.5f), CursorMode.Auto);
-        StartCoroutine(HpRegen());
+        //StartCoroutine(HpRegen());
         StartCoroutine(Execution());
-        if(pv.IsMine)
+        if (pv.IsMine)
         {
             Camera.main.GetComponent<InGameCamera>().player = gameObject;
+            Camera.main.GetComponent<InGameCamera>().Init(gameObject);
+            PhotonNetwork.LocalPlayer.TagObject = this.gameObject;
         }
     }
 
@@ -78,6 +105,7 @@ public class PlayerController : MonoBehaviour, IPunObservable
         character.OnTakeDamage -= ApplyDamage;
         character.OnHeal -= ApplyHeal;
         character.OnStateChanged -= ApplyState;
+        character.OnDie -= Death;
     }
 
     IEnumerator Execution()
@@ -87,6 +115,11 @@ public class PlayerController : MonoBehaviour, IPunObservable
             yield return new WaitUntil(() => canCancel);
             yield return new WaitUntil(() => toExecute.Count > 0);
             Debug.Log("tete: " + toExecute.Count);
+            if (curCommandCor != null)
+            {
+                StopCoroutine(curCommandCor);
+                curCommandCor = null;
+            }
             if (curCommand != null)
             {
                 curCommand.Cancel();
@@ -97,8 +130,68 @@ public class PlayerController : MonoBehaviour, IPunObservable
             }
             if (curCommand != null)
             {
+                if (curCommand is SKillCommands)
+                {
+                    SKillCommands tempCommand = (SKillCommands)curCommand;
+                    if (tempCommand.isTargeting == true)
+                    {
+                        curCommandCor = StartCoroutine(MoveToUse(false, tempCommand.range * 0.01f, tempCommand.GetTargetTransform()));
+                    }
+                    else
+                    {
+                        pv.RPC("Executer", RpcTarget.All);
+                        if (curCommand.Delay > 0)
+                        {
+                            StartCoroutine(Delay(curCommand.Delay));
+                        }
+                    }
+                }
+                else if (curCommand is AutoAttackCommand)
+                {
+                    curCommandCor = StartCoroutine(AACoroutine(((AutoAttackCommand)curCommand).GetTargetTransform(), character.Range * 0.01f));
+                }
+                else
+                {
+                    //curCommand.Execute();
+                    pv.RPC("Executer", RpcTarget.All);
+                    if (curCommand.Delay > 0)
+                    {
+                        StartCoroutine(Delay(curCommand.Delay));
+                    }
+                }
+            }
+        }
+    }
+
+    protected IEnumerator MoveToUse(bool loop, float range, Transform target)
+    {
+        while (Vector3.Distance(transform.position, target.position) > range)
+        {
+            yield return null;
+            agent.SetDestination(target.position);
+        }
+        agent.ResetPath();
+        pv.RPC("Executer", RpcTarget.All);
+        if (curCommand.Delay > 0)
+        {
+            StartCoroutine(Delay(curCommand.Delay));
+        }
+    }
+
+    protected IEnumerator AACoroutine(Transform target, float range)
+    {
+        while (true)
+        {
+            yield return null;
+            if (Vector3.Distance(transform.position, target.position) > range)
+            {
+                agent.SetDestination(target.position);
+            }
+            else if (canAA)
+            {
+                StartCoroutine(AAHandle());
+                agent.ResetPath();
                 pv.RPC("Executer", RpcTarget.All);
-                //curCommand.Execute();
                 if (curCommand.Delay > 0)
                 {
                     StartCoroutine(Delay(curCommand.Delay));
@@ -131,13 +224,20 @@ public class PlayerController : MonoBehaviour, IPunObservable
 
     public void ApplyState()
     {
-        pv.RPC("StateRPC", RpcTarget.OthersBuffered, character.CurState);
+        if(character.CurState != State.Neutral)
+        {
+            pv.RPC("StateRPC", RpcTarget.OthersBuffered, character.CurState, character.stateDict[character.CurState]);
+        }
+        else
+        {
+            pv.RPC("StateRPC", RpcTarget.OthersBuffered, character.CurState, 0);
+        }
     }
 
     [PunRPC]
-    public void StateRPC(State state)
+    public void StateRPC(State state, float time)
     {
-        character.SetState(state);
+        character.SetState(state, time);
     }
 
     [PunRPC]
@@ -146,7 +246,6 @@ public class PlayerController : MonoBehaviour, IPunObservable
         //CommandBase command = DeserializeCommandInfo(stream);
         //command.Execute();
         curCommand?.Execute();
-        Debug.Log("발사발사");
     }
 
     [PunRPC]
@@ -161,16 +260,16 @@ public class PlayerController : MonoBehaviour, IPunObservable
         switch (type) //1: q, 2: w, 3: e, 4:r
         {
             case 1:
-                toExecute.Enqueue(new SkillQCommand(this, delay, isTarget, isChannel, viewId, point));
+                toExecute.Enqueue(new SkillQCommand(this, delay, isTarget, isChannel, qRange, viewId, point));
                 break;
             case 2:
-                toExecute.Enqueue(new SkillWCommand(this, delay, isTarget, isChannel, viewId, point));
+                toExecute.Enqueue(new SkillWCommand(this, delay, isTarget, isChannel, wRange, viewId, point));
                 break;
             case 3:
-                toExecute.Enqueue(new SkillECommand(this, delay, isTarget, isChannel, viewId, point));
+                toExecute.Enqueue(new SkillECommand(this, delay, isTarget, isChannel, eRange, viewId, point));
                 break;
             case 4:
-                toExecute.Enqueue(new SkillRCommand(this, delay, isTarget, isChannel, viewId, point));
+                toExecute.Enqueue(new SkillRCommand(this, delay, isTarget, isChannel, rRange, viewId, point));
                 break;
             default:
                 break;
@@ -197,13 +296,10 @@ public class PlayerController : MonoBehaviour, IPunObservable
 
                     if (Physics.Raycast(ray, out hit))
                     {
-                        if (hit.transform.gameObject.CompareTag(enemyTag) && Vector3.Distance(hit.point, transform.position) <= character.Range * 0.01f)
+                        if (hit.transform.gameObject.CompareTag(enemyTag) && (curCommand is AutoAttackCommand) == false)
                         {
-                            if (canAA)
-                            {
-                                pv.RPC("AAEnququer", RpcTarget.All, hit.transform.GetComponent<PhotonView>().ViewID);
-                                //toExecute.Enqueue(new AutoAttackCommand(this, 0, hit.transform.GetComponent<PhotonView>().ViewID));
-                            }
+                            pv.RPC("AAEnququer", RpcTarget.All, hit.transform.GetComponent<PhotonView>().ViewID);
+                            //toExecute.Enqueue(new AutoAttackCommand(this, 0, hit.transform.GetComponent<PhotonView>().ViewID));
                         }
                         else
                         {
@@ -220,7 +316,17 @@ public class PlayerController : MonoBehaviour, IPunObservable
                     if (Physics.Raycast(ray, out hit))
                     {
                         PhotonView enemyTemp = hit.transform.GetComponent<PhotonView>();
-                        pv.RPC("SkillEnqueuer", RpcTarget.All, 1, qDelay, false, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        if (qTarget)
+                        {
+                            if (enemyTemp.CompareTag(enemyTag))
+                            {
+                                pv.RPC("SkillEnqueuer", RpcTarget.All, 1, qDelay, qTarget, qChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                            }
+                        }
+                        else
+                        {
+                            pv.RPC("SkillEnqueuer", RpcTarget.All, 1, qDelay, qTarget, qChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        }
                         //SkillEnqueuer(1, 0.2f, false, false, hit.transform.GetComponent<PhotonView>().ViewID, hit.point);
                         //toExecute.Enqueue(new SkillQCommand(this, 0.2f, false, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point));
                     }
@@ -232,7 +338,17 @@ public class PlayerController : MonoBehaviour, IPunObservable
                     if (Physics.Raycast(ray, out hit))
                     {
                         PhotonView enemyTemp = hit.transform.GetComponent<PhotonView>();
-                        pv.RPC("SkillEnqueuer", RpcTarget.All, 2, wDelay, false, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        if (wTarget)
+                        {
+                            if (enemyTemp.CompareTag(enemyTag))
+                            {
+                                pv.RPC("SkillEnqueuer", RpcTarget.All, 2, wDelay, wTarget, wChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                            }
+                        }
+                        else
+                        {
+                            pv.RPC("SkillEnqueuer", RpcTarget.All, 2, wDelay, wTarget, wChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        }
                         //SkillEnqueuer(2, 0.1f, false, false, hit.transform.GetComponent<PhotonView>().ViewID, hit.point);
                         //toExecute.Enqueue(new SkillWCommand(this, 0.1f, true, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point));
                     }
@@ -244,7 +360,17 @@ public class PlayerController : MonoBehaviour, IPunObservable
                     if (Physics.Raycast(ray, out hit))
                     {
                         PhotonView enemyTemp = hit.transform.GetComponent<PhotonView>();
-                        pv.RPC("SkillEnqueuer", RpcTarget.All, 3, eDelay, false, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        if (eTarget)
+                        {
+                            if (enemyTemp.CompareTag(enemyTag))
+                            {
+                                pv.RPC("SkillEnqueuer", RpcTarget.All, 3, eDelay, eTarget, eChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                            }
+                        }
+                        else
+                        {
+                            pv.RPC("SkillEnqueuer", RpcTarget.All, 3, eDelay, eTarget, eChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        }
                         //SkillEnqueuer(3, 0.1f, false, false, hit.transform.GetComponent<PhotonView>().ViewID, hit.point);
                         //toExecute.Enqueue(new SkillECommand(this, 0.1f, true, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point));
                     }
@@ -256,7 +382,17 @@ public class PlayerController : MonoBehaviour, IPunObservable
                     if (Physics.Raycast(ray, out hit))
                     {
                         PhotonView enemyTemp = hit.transform.GetComponent<PhotonView>();
-                        pv.RPC("SkillEnqueuer", RpcTarget.All, 4, rDelay, false, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        if (rTarget)
+                        {
+                            if (enemyTemp.CompareTag(enemyTag))
+                            {
+                                pv.RPC("SkillEnqueuer", RpcTarget.All, 4, rDelay, rTarget, rChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                            }
+                        }
+                        else
+                        {
+                            pv.RPC("SkillEnqueuer", RpcTarget.All, 4, rDelay, rTarget, rChannel, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point);
+                        }
                         //SkillEnqueuer(4, 0, false, false, hit.transform.GetComponent<PhotonView>().ViewID, hit.point);
                         //toExecute.Enqueue(new SkillRCommand(this, 0, false, false, enemyTemp != null ? enemyTemp.ViewID : 0, hit.point));
                     }
@@ -304,7 +440,7 @@ public class PlayerController : MonoBehaviour, IPunObservable
     public IEnumerator AAHandle()
     {
         canAA = false;
-        yield return new WaitForSeconds(1 / character.AttackSpeed);
+        yield return new WaitForSeconds(1f / character.AttackSpeed);
         canAA = true;
     }
 
@@ -342,10 +478,32 @@ public class PlayerController : MonoBehaviour, IPunObservable
                 character.CurRCool = 0;
             }
         }
+        if (character.stateDict != null)
+        {
+            for (int i = 1; i < (int)State.End; i++)
+            {
+                State tempState = (State)i;
+                if (character.stateDict.ContainsKey(tempState) && character.stateDict[tempState] > 0)
+                {
+                    character.stateDict[tempState] -= Time.deltaTime;
+                    if (character.stateDict[tempState] <= 0)
+                    {
+                        character.stateDict[tempState] = 0;
+                    }
+                }
+            }
+        }
+        character.StateChecker();
     }
+
 
     public virtual void Stop()
     {
+        if (curCommandCor != null)
+        {
+            StopCoroutine(curCommandCor);
+            curCommandCor = null;
+        }
         agent.ResetPath();
     }
 
@@ -357,6 +515,17 @@ public class PlayerController : MonoBehaviour, IPunObservable
     public virtual void Move(Vector3 pos)
     {
         //움직이다
+        toExecute.Clear();
+        if (curCommand != null)
+        {
+            curCommand = null;
+        }
+        if (curCommandCor != null)
+        {
+            StopCoroutine(curCommandCor);
+            curCommandCor = null;
+        }
+
         if (character.CurState != State.Root)
         {
             agent.SetDestination(pos);
@@ -365,7 +534,7 @@ public class PlayerController : MonoBehaviour, IPunObservable
 
     public virtual void AutoAttack(PlayerController target)
     {
-        StartCoroutine(AAHandle());
+        //StartCoroutine(AAHandle());
         Debug.Log("AA " + target.name);
         //평타
         float damage = character.ATK;
@@ -501,6 +670,18 @@ public class PlayerController : MonoBehaviour, IPunObservable
         yield return new WaitForSeconds(time);
         character.AdjustMoveSpeed(tempSpeed);
     }
+
+    public virtual void Death()
+    {
+        Debug.Log(pv.ViewID + " 사망");
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.PlayerDeath(pv.ControllerActorNr);
+        }
+        agent.enabled = false;
+        this.enabled = false;
+    }
+
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {

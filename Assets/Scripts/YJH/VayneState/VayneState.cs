@@ -71,7 +71,11 @@ public class VayneState : PlayerController
             ChangeState(new UltTumbleState(location));
         }
     }
-
+    public override void Death()
+    {
+        base.Death();
+        anim.SetTrigger("Dead");
+    }
     public override void SkillE(bool isTargeting, bool isChanneling, PlayerController target, Vector3 location)
     {
         if (character.CurECool <= 0)
@@ -148,6 +152,7 @@ public class VayneState : PlayerController
 
         VayneWSkill(target);
     }
+    
 
     public void VayneWSkill(PlayerController target)
     {
@@ -214,13 +219,9 @@ public class VayneState : PlayerController
             {
                 if (hit.collider.CompareTag("Wall"))
                 {
-                    Debug.Log("벽 충돌 감지");
-                    target.character.SetState(State.Stun);
-                    yield return new WaitForSeconds(1.5f);
-                    target.character.SetState(State.Neutral);
-
+                    target.character.SetState(State.Stun,1.5f);
                     target.character.TakeDamage(character, 285 + (character.ATK * 0.75f), false, character.Lethality, character.ArmorPenetration);
-                    yield break;
+                    yield return null;
                 }
             }
 

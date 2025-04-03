@@ -50,15 +50,13 @@ public class RyzeQScript : MonoBehaviour
                 damage *= 2;
                 Destroy(mark.gameObject);
                 int layerNum = LayerMask.NameToLayer(enemyTag);
-                Debug.Log("E dsa " + layerNum);
+
                 Collider[] hits = Physics.OverlapSphere(transform.position, 3.25f, 1 << layerNum);
 
-                Debug.Log("E asd " + hits.Length);
                 for (int i = 0; i < hits.Length; i++)
                 {
                     if (hits[i].transform != other.transform)
                     {
-                        Debug.Log("asdd " + hits[i].name);
                         RyzeEScrpit addMark = hits[i]?.GetComponentInChildren<RyzeEScrpit>();
                         if (addMark != null)
                         {

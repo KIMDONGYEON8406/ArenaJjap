@@ -9,10 +9,8 @@ public class RyzeEScrpit : MonoBehaviour
     public void SpreadE(string enemyTag, GameObject EObj)
     {
         int layerNum = LayerMask.NameToLayer(enemyTag);
-        Debug.Log("E dsa " + layerNum);
         Collider[] hits = Physics.OverlapSphere(transform.position, 3.25f, 1 << layerNum);
 
-        Debug.Log("E asd " + hits.Length);
         for (int i = 0; i < hits.Length; i++)
         {
             if (hits[i].transform.parent != transform.parent)

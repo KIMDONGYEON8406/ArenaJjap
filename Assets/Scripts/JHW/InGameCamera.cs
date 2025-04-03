@@ -14,8 +14,13 @@ public class InGameCamera : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        transform.position = initPos + player.transform.position;
         Cursor.lockState = CursorLockMode.Confined; //마우스 못나가게 하기
+        
+    }
+
+    public void Init(GameObject player)
+    {
+        transform.position = initPos + player.transform.position;
     }
 
     // Update is called once per frame

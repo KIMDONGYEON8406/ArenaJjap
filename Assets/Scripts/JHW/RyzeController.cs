@@ -15,7 +15,7 @@ public class RyzeController : PlayerController
     public override void Update()
     {
         base.Update();
-        if(agent.remainingDistance <= 0.1f)
+        if (agent.remainingDistance <= 0.1f)
         {
             if (animator.GetCurrentAnimatorStateInfo(0).IsName("Run") || animator.GetCurrentAnimatorStateInfo(0).IsName("RunFast"))
             {
@@ -54,7 +54,7 @@ public class RyzeController : PlayerController
 
     public override void AutoAttack(PlayerController target)
     {
-        StartCoroutine(AAHandle());
+        //StartCoroutine(AAHandle());
         Vector3 look = target.transform.position;
         look.y = transform.position.y;
         transform.LookAt(look, transform.forward);
@@ -138,18 +138,15 @@ public class RyzeController : PlayerController
         if (marked != null) //표식 있으면
         {
             Destroy(marked.gameObject);
-            target.SetState(State.Root);
-            yield return new WaitForSeconds(1.5f);
-            target.SetState(State.Neutral);
+            target.SetState(State.Root, 1.5f);
         }
         else
         {
             int tempSpeed = (int)(target.MoveSpeed * 0.5f);
-            target.SetState(State.Slow);
+            target.SetState(State.Slow, 1.5f);
             target.AdjustMoveSpeed(-tempSpeed);
             yield return new WaitForSeconds(1.5f);
             target.AdjustMoveSpeed(tempSpeed);
-            target.SetState(State.Neutral);
         }
     }
 
@@ -244,5 +241,12 @@ public class RyzeController : PlayerController
         character.AdjustMoveSpeed(tempSpeed);
         yield return new WaitForSeconds(2f);
         character.AdjustMoveSpeed(-tempSpeed);
+    }
+
+    public override void Death()
+    {
+        base.Death();
+        animator.SetTrigger("Die");
+
     }
 }

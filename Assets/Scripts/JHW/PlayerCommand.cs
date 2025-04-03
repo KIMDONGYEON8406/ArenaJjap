@@ -12,7 +12,7 @@ public class CommandBase
 
     public float Delay
     {
-        get;set;
+        get; set;
     }
 
     public virtual void Execute()
@@ -39,7 +39,7 @@ public class CommandBase
 public class MoveCommand : CommandBase //움직임
 {
     Vector3 movePos;
-    public MoveCommand(PlayerController controller, float delay , Vector3 movePos) : base(controller, delay)
+    public MoveCommand(PlayerController controller, float delay, Vector3 movePos) : base(controller, delay)
     {
         this.movePos = movePos;
     }
@@ -62,6 +62,10 @@ public class AutoAttackCommand : CommandBase //평타
         target = PhotonView.Find(targetId)?.GetComponent<PlayerController>();
     }
 
+    public Transform GetTargetTransform()
+    {
+        return target.transform;
+    }
 
     public override void Execute()
     {
@@ -101,15 +105,23 @@ public class FlashCommmand : CommandBase //점멸
 
 public class SKillCommands : CommandBase //스킬들 베이스
 {
-    protected bool isTargeting;
-    protected bool isChanneling;
+    public bool isTargeting;
+    public bool isChanneling;
+    public int range;
     protected PlayerController target;
     protected Vector3 location;
 
-    public SKillCommands(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int targetId , Vector3 location) : base(controller, delay)
+    public Transform GetTargetTransform()
+    {
+        return target.transform;
+    }
+
+    public SKillCommands(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int range, int targetId, Vector3 location) : base(controller, delay)
     {
         this.isTargeting = isTargeting;
         this.isChanneling = isChanneling;
+        this.range = range;
+
         if (PhotonView.Find(targetId) == null)
         {
             target = null;
@@ -125,7 +137,7 @@ public class SKillCommands : CommandBase //스킬들 베이스
 
 public class SkillQCommand : SKillCommands //Q스킬
 {
-    public SkillQCommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, targetId, location)
+    public SkillQCommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int range, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, range, targetId, location)
     {
 
     }
@@ -140,7 +152,7 @@ public class SkillQCommand : SKillCommands //Q스킬
 
 public class SkillWCommand : SKillCommands //W스킬
 {
-    public SkillWCommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, targetId, location)
+    public SkillWCommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int range, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, range, targetId, location)
     {
 
     }
@@ -154,7 +166,7 @@ public class SkillWCommand : SKillCommands //W스킬
 
 public class SkillECommand : SKillCommands //E스킬
 {
-    public SkillECommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, targetId, location)
+    public SkillECommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int range, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, range, targetId, location)
     {
 
     }
@@ -168,7 +180,7 @@ public class SkillECommand : SKillCommands //E스킬
 
 public class SkillRCommand : SKillCommands //R스킬
 {
-    public SkillRCommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, targetId, location)
+    public SkillRCommand(PlayerController controller, float delay, bool isTargeting, bool isChanneling, int range, int targetId, Vector3 location) : base(controller, delay, isTargeting, isChanneling, range, targetId, location)
     {
 
     }

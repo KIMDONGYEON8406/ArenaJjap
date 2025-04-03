@@ -98,10 +98,22 @@ MonoBehaviour:
   character: {fileID: 11400000, guid: f1a975db0b5613d4d9d7038d1ebbc79d, type: 2}
   enemyTag: Enemy
   pv: {fileID: 0}
+  qRange: 0
   qDelay: 0.2
+  qTarget: 0
+  qChannel: 0
+  wRange: 0
   wDelay: 0.1
+  wTarget: 0
+  wChannel: 0
+  eRange: 0
   eDelay: 0.1
+  eTarget: 0
+  eChannel: 0
+  rRange: 0
   rDelay: 0
+  rTarget: 0
+  rChannel: 0
   animator: {fileID: 7101806127043439641}
   AAObj: {fileID: 5801730086407992184, guid: 59d56bf0fc937514ea136589b3a3fc2e, type: 3}
   QObj: {fileID: 4778584851969424976, guid: eeeb389befc640b4083c4619333d93bc, type: 3}

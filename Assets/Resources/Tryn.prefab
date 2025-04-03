@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3713678617428843873}
   - component: {fileID: 3205854455308713299}
   m_Layer: 0
-  m_Name: Tryn1
+  m_Name: Tryn
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -98,12 +98,26 @@ MonoBehaviour:
   character: {fileID: 11400000, guid: b686968067a4be6479674dc3d5a9cb95, type: 2}
   enemyTag: Enemy
   pv: {fileID: 0}
+  qRange: 0
   qDelay: 0
+  qTarget: 0
+  qChannel: 0
+  wRange: 0
   wDelay: 0
+  wTarget: 0
+  wChannel: 0
+  eRange: 0
   eDelay: 0
+  eTarget: 0
+  eChannel: 0
+  rRange: 0
   rDelay: 0
+  rTarget: 0
+  rChannel: 0
+  attackCooldown: 0.3
   healEffectPrefab: {fileID: 1679069660912616131}
   rEffectObject: {fileID: 2416173175428008392}
+  slowEffectPrefab: {fileID: 0}
   rage: 0
   maxRage: 100
   eSpeed: 10
